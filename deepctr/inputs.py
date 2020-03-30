@@ -27,7 +27,7 @@ class SparseFeat(namedtuple('SparseFeat',
 
     def __new__(cls, name, vocabulary_size, embedding_dim=4, use_hash=False, dtype="int32", embedding_name=None,
                 group_name=DEFAULT_GROUP_NAME):
-        if embedding_name is None:
+        if embedding_name is None:      # 列名
             embedding_name = name
         if embedding_dim == "auto":
             embedding_dim = 6 * int(pow(vocabulary_size, 0.25))
@@ -96,6 +96,7 @@ class DenseFeat(namedtuple('DenseFeat', ['name', 'dimension', 'dtype'])):
     #     return 'DenseFeat:'+self.name
 
 
+""" 输入的是 feature_columns，列表形式，里面是对象，返回的是 列名组成的列表 """
 def get_feature_names(feature_columns):
     features = build_input_features(feature_columns)
     return list(features.keys())
@@ -105,6 +106,7 @@ def get_inputs_list(inputs):
     return list(chain(*list(map(lambda x: x.values(), filter(lambda x: x is not None, inputs)))))
 
 
+"""  """
 def build_input_features(feature_columns, prefix=''):
     input_features = OrderedDict()
     for fc in feature_columns:

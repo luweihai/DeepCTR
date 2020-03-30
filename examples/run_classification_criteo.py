@@ -23,15 +23,17 @@ if __name__ == "__main__":
     mms = MinMaxScaler(feature_range=(0, 1))
     data[dense_features] = mms.fit_transform(data[dense_features])     # 连续型特征做归一化
 
-    # 2.count #unique features for each sparse field,and record dense feature field name
 
+    """ 把 离散特征 定义为 SparseFeat对象，把 连续特征 定义为 DenseFeat对象  组合为全部的特征"""
     fixlen_feature_columns = [SparseFeat(feat, vocabulary_size=data[feat].nunique(),embedding_dim=4)
                            for i,feat in enumerate(sparse_features)] + [DenseFeat(feat, 1,)
                           for feat in dense_features]
 
+    """ dnn 和 wide 共享全部的特征 """
     dnn_feature_columns = fixlen_feature_columns
     linear_feature_columns = fixlen_feature_columns
 
+    """ 获取到所有的列名 """
     feature_names = get_feature_names(linear_feature_columns + dnn_feature_columns)
 
     # 3.generate input data for model
