@@ -9,19 +9,19 @@ from deepctr.inputs import  SparseFeat, DenseFeat, get_feature_names
 if __name__ == "__main__":
     data = pd.read_csv('./criteo_sample.txt')
 
-    sparse_features = ['C' + str(i) for i in range(1, 27)]
-    dense_features = ['I' + str(i) for i in range(1, 14)]
+    sparse_features = ['C' + str(i) for i in range(1, 27)]    # 离散型特征的列名
+    dense_features = ['I' + str(i) for i in range(1, 14)]     # 连续型特征的列名
 
-    data[sparse_features] = data[sparse_features].fillna('-1', )
-    data[dense_features] = data[dense_features].fillna(0, )
+    data[sparse_features] = data[sparse_features].fillna('-1', )  # 离散型特征 默认填充 "-1"（字符串）
+    data[dense_features] = data[dense_features].fillna(0, )      # 连续型特征 默认填充 0
     target = ['label']
 
     # 1.Label Encoding for sparse features,and do simple Transformation for dense features
-    for feat in sparse_features:
+    for feat in sparse_features:       # 离散型特征做 label_encoding
         lbe = LabelEncoder()
         data[feat] = lbe.fit_transform(data[feat])
     mms = MinMaxScaler(feature_range=(0, 1))
-    data[dense_features] = mms.fit_transform(data[dense_features])
+    data[dense_features] = mms.fit_transform(data[dense_features])     # 连续型特征做归一化
 
     # 2.count #unique features for each sparse field,and record dense feature field name
 
