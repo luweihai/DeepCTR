@@ -108,15 +108,15 @@ def get_inputs_list(inputs):
 
 """  """
 def build_input_features(feature_columns, prefix=''):
-    input_features = OrderedDict()
+    input_features = OrderedDict()   # 有序字典，value 是 keras 的 input
     for fc in feature_columns:
-        if isinstance(fc, SparseFeat):
+        if isinstance(fc, SparseFeat):   # 类别特征
             input_features[fc.name] = Input(
                 shape=(1,), name=prefix + fc.name, dtype=fc.dtype)
-        elif isinstance(fc, DenseFeat):
+        elif isinstance(fc, DenseFeat):      # 实值特征
             input_features[fc.name] = Input(
                 shape=(fc.dimension,), name=prefix + fc.name, dtype=fc.dtype)
-        elif isinstance(fc, VarLenSparseFeat):
+        elif isinstance(fc, VarLenSparseFeat):   # 多值类别特征
             input_features[fc.name] = Input(shape=(fc.maxlen,), name=prefix + fc.name,
                                             dtype=fc.dtype)
             if fc.weight_name is not None:
@@ -133,6 +133,7 @@ def build_input_features(feature_columns, prefix=''):
 
 def create_embedding_dict(sparse_feature_columns, varlen_sparse_feature_columns, init_std, seed, l2_reg,
                           prefix='sparse_', seq_mask_zero=True):
+    # 用 keras 的 embedding 层实现 embedding 矩阵
     sparse_embedding = {feat.embedding_name: Embedding(feat.vocabulary_size, feat.embedding_dim,
                                                        embeddings_initializer=RandomNormal(
                                                            mean=0.0, stddev=init_std, seed=seed),
@@ -215,7 +216,7 @@ def get_linear_logit(features, feature_columns, units=1, use_bias=False, init_st
 
 def embedding_lookup(sparse_embedding_dict, sparse_input_dict, sparse_feature_columns, return_feat_list=(),
                      mask_feat_list=(), to_list=False):
-    group_embedding_dict = defaultdict(list)
+    group_embedding_dict = defaultdict(list)   # 定义一个默认的字典
     for fc in sparse_feature_columns:
         feature_name = fc.name
         embedding_name = fc.embedding_name
@@ -223,13 +224,13 @@ def embedding_lookup(sparse_embedding_dict, sparse_input_dict, sparse_feature_co
             if fc.use_hash:
                 lookup_idx = Hash(fc.vocabulary_size, mask_zero=(feature_name in mask_feat_list))(
                     sparse_input_dict[feature_name])
-            else:
+            else:   # 通过 特征名字 获取到 输入
                 lookup_idx = sparse_input_dict[feature_name]
 
             group_embedding_dict[fc.group_name].append(sparse_embedding_dict[embedding_name](lookup_idx))
     if to_list:
         return list(chain.from_iterable(group_embedding_dict.values()))
-    return group_embedding_dict
+    return group_embedding_dict  # 返回的就是一个字典，字典里面有 特征数目 个 embedding 层
 
 
 def varlen_embedding_lookup(embedding_dict, sequence_input_dict, varlen_sparse_feature_columns):
@@ -283,24 +284,37 @@ def get_dense_input(features, feature_columns):
 
 def input_from_feature_columns(features, feature_columns, l2_reg, init_std, seed, prefix='', seq_mask_zero=True,
                                support_dense=True, support_group=False):
+
+    # 类别特征的列
     sparse_feature_columns = list(
         filter(lambda x: isinstance(x, SparseFeat), feature_columns)) if feature_columns else []
+
+    # 多值类别特征的列
     varlen_sparse_feature_columns = list(
         filter(lambda x: isinstance(x, VarLenSparseFeat), feature_columns)) if feature_columns else []
 
+    """ 创建 embedding 矩阵 """
     embedding_matrix_dict = create_embedding_matrix(feature_columns, l2_reg, init_std, seed, prefix=prefix,
                                                     seq_mask_zero=seq_mask_zero)
     group_sparse_embedding_dict = embedding_lookup(embedding_matrix_dict, features, sparse_feature_columns)
+
+    # 获得 dense 层的输入
     dense_value_list = get_dense_input(features, feature_columns)
+
     if not support_dense and len(dense_value_list) > 0:
         raise ValueError("DenseFeat is not supported in dnn_feature_columns")
 
+    # 多值类别特征的 embedding
     sequence_embed_dict = varlen_embedding_lookup(embedding_matrix_dict, features, varlen_sparse_feature_columns)
     group_varlen_sparse_embedding_dict = get_varlen_pooling_list(sequence_embed_dict, features,
                                                                  varlen_sparse_feature_columns)
+
+    # 把 类别特征的 embedding 字典 和 多值类别特征的 embedding 字典 进行拼接
     group_embedding_dict = mergeDict(group_sparse_embedding_dict, group_varlen_sparse_embedding_dict)
     if not support_group:
         group_embedding_dict = list(chain.from_iterable(group_embedding_dict.values()))
+
+    # 返回 类别特征的 embedding 和 dense 特征
     return group_embedding_dict, dense_value_list
 
 
